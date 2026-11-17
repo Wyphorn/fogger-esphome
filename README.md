@@ -2,7 +2,7 @@
 
 # Fogger with ESPHome
 
-Control a cheap fog machine (**"LED-1200 Smoke Machine"**, 1200 W, with RGB LEDs) from **Home Assistant**. A **WEMOS D1 Mini** running ESPHome is wired directly into the fogger's controller. There is no radio left in the loop.
+Control a cheap fog machine (**"LED-1200 Smoke Machine"**, 1200 W, with RGB LEDs) from **Home Assistant**. A **WEMOS D1 Mini** running ESPHome is wired directly into the fogger's controller and talks to Home Assistant over WiFi. The 433 MHz link between remote and fogger is gone.
 
 ![PCB in 3D](docs/platine_iso.png)
 
@@ -10,16 +10,16 @@ Control a cheap fog machine (**"LED-1200 Smoke Machine"**, 1200 W, with RGB LEDs
 
 For Halloween I wanted a ghost to appear at my front door. The motion sensor triggers, the music fades in, the light gets brighter, the strobe kicks in, and then a burst of fog. The fogger only came with a cheap 24-button remote, so I had to get it into Home Assistant somehow.
 
-**Attempt 1: infrared.** The remote looks like the typical IR remote for RGB lamps. So I hooked an IR receiver to an ESP to capture the codes. Nothing came in. The fogger has no IR receiver at all.
+**Attempt 1: Fingerbots (last year).** My first try was Fingerbots, little push-button robots that physically pressed the buttons on the remote.
 
-**Attempt 2: 433 MHz.** With a nanoCUL (CC1101, SIGNALduino) I then captured every button. It is simple OOK on 433.92 MHz with an NEC-like code `A7 FC <command> <~command>`. For Halloween the ESP sent the codes through the nanoCUL, and that worked. There were two problems, though:
+**Attempt 2: 433 MHz.** This year I wanted to send the commands directly. The remote works on 433 MHz radio, and with a nanoCUL (CC1101, SIGNALduino) I captured every button. It is simple OOK on 433.92 MHz with an NEC-like code `A7 FC <command> <~command>`. For Halloween the ESP sent the codes through the nanoCUL, and that worked. There were two problems, though:
 - Now and then an **OFF arrived as fog ON**. ON and OFF differ in only two bits. As a workaround, the automation sent OFF every 6 s during the fog phase.
 - WiFi at the front door is weak. It worked once power saving was off (`power_save_mode: none`).
 
-**Solution: a wire instead of radio.** After Halloween I opened the fogger. The radio receiver is a separate little board on a 3-pin JST connector labelled **GND / DO / 5V**. DO carries the demodulated signal: HIGH while the remote is transmitting, LOW otherwise. I unplugged the radio module, and now the D1 Mini puts exactly this signal on DO by wire. To the fogger it looks like a remote with perfect reception:
+**Solution: a wire instead of 433 MHz.** After Halloween I opened the fogger. The radio receiver is a separate little board on a 3-pin JST connector labelled **GND / DO / 5V**. DO carries the demodulated signal: HIGH while the remote is transmitting, LOW otherwise. I unplugged the radio module, and now the D1 Mini puts exactly this signal on DO by wire. To the fogger it looks like a remote with perfect reception:
 - All 23 buttons work, including colours, strobe and brightness.
 - The fogger's heater interlock stays in place.
-- Nothing is transmitted over the air any more.
+- No more 433 MHz radio: the D1 Mini reaches the fogger by wire and only uses WiFi to talk to Home Assistant.
 
 One stumbling block was the logic level: the controller does not see the ESP's 3.3 V as HIGH. An NPN transistor as a level shifter pulls DO up to the fogger's 5 V, and with that it worked right away.
 
@@ -70,7 +70,6 @@ All codes and the protocol are in [`codes.md`](codes.md).
 ### Other files
 - `fogger_cul.yaml`: the Halloween version, an ESP32-C6 drives a nanoCUL over UART, which transmits.
 - `fogger_c6.yaml`: the wired version for an ESP32-C6 instead of a D1 Mini, without the level shifter.
-- `fogger_ir_alt.yaml`: the IR attempt.
 - `rf_log.txt`: the 433 MHz capture log from the nanoCUL.
 
 ## ⚠️ Safety

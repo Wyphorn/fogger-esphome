@@ -12,3 +12,4 @@ fp-info-cache
 
 # IR-Versuch, nur lokal
 ir_log*.txt
+fogger_ir_alt.yaml
