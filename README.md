@@ -70,7 +70,8 @@ All codes and the protocol are in [`codes.md`](codes.md).
 ### Other files
 - `fogger_cul.yaml`: the Halloween version, an ESP32-C6 drives a nanoCUL over UART, which transmits.
 - `fogger_c6.yaml`: the wired version for an ESP32-C6 instead of a D1 Mini, without the level shifter.
-- `fogger_ir_alt.yaml`, `*_log*.txt`: the IR attempt and the capture logs.
+- `fogger_ir_alt.yaml`: the IR attempt.
+- `rf_log.txt`: the 433 MHz capture log from the nanoCUL.
 
 ## ⚠️ Safety
 

@@ -70,7 +70,8 @@ Alle Codes und das Protokoll stehen in [`codes.de.md`](codes.de.md).
 ### Weitere Dateien
 - `fogger_cul.yaml`: die Halloween-Version, ein ESP32-C6 steuert über UART einen nanoCUL, der funkt.
 - `fogger_c6.yaml`: die Draht-Version für einen ESP32-C6 statt D1 Mini, ohne Pegelwandler.
-- `fogger_ir_alt.yaml`, `*_log*.txt`: der Versuch mit IR und die Mitschnitte vom Auslesen.
+- `fogger_ir_alt.yaml`: der Versuch mit IR.
+- `rf_log.txt`: der 433-MHz-Mitschnitt vom nanoCUL.
 
 ## ⚠️ Sicherheit
 

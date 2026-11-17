@@ -9,3 +9,6 @@ kicad/.history/
 *-backups/
 fp-info-cache
 *.kicad_prl
+
+# IR-Versuch, nur lokal
+ir_log*.txt
