@@ -2,7 +2,7 @@
 
 # Fogger with ESPHome
 
-Control a cheap fog machine (**"LED-1200 Smoke Machine"**, 1200 W, with RGB LEDs) from **Home Assistant**. A **WEMOS D1 Mini** running ESPHome is wired directly into the fogger's controller and talks to Home Assistant over WiFi. The 433 MHz link between remote and fogger is gone.
+Control a cheap fog machine (labelled **"Fogger 1200W"** on the device, sold as **"LED-1200 Smoke Machine"**, with RGB LEDs) from **Home Assistant**. A **WEMOS D1 Mini** running ESPHome is wired directly into the fogger's controller and talks to Home Assistant over WiFi. The 433 MHz link between remote and fogger is gone.
 
 ![PCB in 3D](docs/platine_iso.png)
 

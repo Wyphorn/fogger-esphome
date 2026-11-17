@@ -2,7 +2,7 @@
 
 # Fogger mit ESPHome
 
-Eine billige Nebelmaschine (**„LED-1200 Smoke Machine“**, 1200 W, mit RGB-LEDs) per **Home Assistant** steuern. Ein **WEMOS D1 Mini** mit ESPHome hängt direkt an der Steuerung des Foggers und spricht per WLAN mit Home Assistant. Die 433-MHz-Funkstrecke zwischen Fernbedienung und Fogger gibt es nicht mehr.
+Eine billige Nebelmaschine (auf dem Gerät steht **„Fogger 1200W“**, verkauft als **„LED-1200 Smoke Machine“**, mit RGB-LEDs) per **Home Assistant** steuern. Ein **WEMOS D1 Mini** mit ESPHome hängt direkt an der Steuerung des Foggers und spricht per WLAN mit Home Assistant. Die 433-MHz-Funkstrecke zwischen Fernbedienung und Fogger gibt es nicht mehr.
 
 ![Platine in 3D](docs/platine_iso.png)
 
