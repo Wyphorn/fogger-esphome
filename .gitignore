@@ -1,0 +1,11 @@
+# ESPHome
+/.esphome/
+/secrets.yaml
+
+# KiCad
+kicad/.history/
+*.lck
+*.bak*
+*-backups/
+fp-info-cache
+*.kicad_prl

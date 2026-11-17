@@ -1,0 +1,257 @@
+# Fogger LED-1200 per 433 MHz: ESP32-C6 steuert den nanoCUL (SIGNALduino) per UART.
+# Codes und Protokoll: codes.md
+esphome:
+  name: fogger
+
+esp32:
+  board: esp32-c6-devkitc-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret fogger_api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none   # Stromsparen aus: bei schwachem Signal sonst Aussetzer
+
+debug:
+  update_interval: 60s
+
+# nanoCUL: Nano D0 (RX) an GPIO19, Nano D1 (TX) ueber Teiler 10k/20k an GPIO20
+uart:
+  id: cul
+  tx_pin: GPIO19
+  rx_pin: GPIO20
+  baud_rate: 57600
+  debug:
+    direction: BOTH
+    dummy_receiver: true
+    after:
+      delimiter: "\n"
+    sequence:
+      - lambda: UARTDebug::log_string(direction, bytes);
+
+script:
+  - id: send_code
+    parameters:
+      cmd: string
+    mode: queued
+    then:
+      - uart.write:
+          id: cul
+          data: !lambda 'return std::vector<uint8_t>(cmd.begin(), cmd.end());'
+      - delay: 700ms   # 6 Wiederholungen a ~65 ms + Puffer
+
+  # Nebelstoss: ON, nach der Zeit OFF. Laeuft im ESP, auch wenn HA wegfaellt.
+  - id: fog_burst
+    mode: restart
+    then:
+      - script.stop: fog_on
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010101232323232323232301;\n"
+      - delay: !lambda 'return id(fog_seconds).state * 1000;'
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010123232323232323230101;\n"
+
+  # Nebel ON mit Sicherheits-Timer: spaetestens nach fog_max_s kommt OFF
+  - id: fog_on
+    mode: restart
+    then:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010101232323232323232301;\n"
+      - delay: !lambda 'return id(fog_max_s).state * 1000;'
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010123232323232323230101;\n"
+
+sensor:
+  - platform: wifi_signal
+    name: "WLAN Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "Laufzeit"
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Neustart-Grund"
+
+number:
+  - platform: template
+    id: fog_max_s   # neue id, damit der alte gespeicherte Wert (60 s) nicht zurueckkommt
+    name: "Nebel ON Höchstdauer"
+    unit_of_measurement: s
+    min_value: 1
+    max_value: 20
+    step: 1
+    initial_value: 8
+    optimistic: true
+    restore_value: true
+  - platform: template
+    id: fog_seconds
+    name: "Nebelstoß Dauer"
+    unit_of_measurement: s
+    min_value: 1
+    max_value: 30
+    step: 1
+    initial_value: 5
+    optimistic: true
+    restore_value: true
+
+button:
+  - platform: template
+    name: "Nebelstoß"
+    icon: mdi:weather-fog
+    on_press:
+      - script.execute: fog_burst
+  - platform: template
+    name: "Nebel ON"
+    icon: mdi:weather-fog
+    on_press:
+      - script.stop: fog_burst
+      - script.execute: fog_on
+  - platform: template
+    name: "Nebel OFF"
+    on_press:
+      - script.stop: fog_on
+      - script.stop: fog_burst
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010123232323232323230101;\n"
+  - platform: template
+    name: "Rot"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101012301012323232323012323;\n"
+  - platform: template
+    name: "Grün"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101012301232323232323012301;\n"
+  - platform: template
+    name: "Blau"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101012323012323232323010123;\n"
+  - platform: template
+    name: "Jump"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101012323232323232323010101;\n"
+  - platform: template
+    name: "Gradual change"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101230101012323232301232323;\n"
+  - platform: template
+    name: "Pulse change"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101230101232323232301232301;\n"
+  - platform: template
+    name: "Stroboskop"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123010101012323230123232323;\n"
+  - platform: template
+    name: "Helligkeit hoch"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123010101232323230123232301;\n"
+  - platform: template
+    name: "Helligkeit runter"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123010123012323230123230123;\n"
+  - platform: template
+    name: "Gelbgrün"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123010123232323230123230101;\n"
+  - platform: template
+    name: "Rosa"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123012301012323230123012323;\n"
+  - platform: template
+    name: "Dunkelblau"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123012301232323230123012301;\n"
+  - platform: template
+    name: "Hellblau"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123012323012323230123010123;\n"
+  - platform: template
+    name: "Graulila"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123012323232323230123010101;\n"
+  - platform: template
+    name: "Grün 2"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123230101012323230101232323;\n"
+  - platform: template
+    name: "Grün 3"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010123230101232323230101232301;\n"
+  - platform: template
+    name: "Dunkelblau 2"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101012301010101012323012323232323;\n"
+  - platform: template
+    name: "Magenta"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101012301010101232323012323232301;\n"
+  - platform: template
+    name: "Lila"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101012301010123012323012323230123;\n"
+  - platform: template
+    name: "Blauviolett"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101012301010123232323012323230101;\n"
+  - platform: template
+    name: "Licht aus"
+    on_press:
+      - script.execute:
+          id: send_code
+          cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101012301012301012323012323012323;\n"

@@ -1,0 +1,37 @@
+# Schritt 1: IR-Codes der Fogger-Fernbedienung auslesen (nur USB, noch kein WLAN)
+esphome:
+  name: fogger
+
+esp32:
+  board: esp32-c6-devkitc-1
+  framework:
+    type: esp-idf
+
+logger:
+
+remote_receiver:
+  pin:
+    number: GPIO20
+    allow_other_uses: true
+    inverted: true
+    mode:
+      input: true
+      pullup: true
+  dump: all
+
+# Diagnose: Herzschlag + Rohpegel am Empfaenger
+interval:
+  - interval: 5s
+    then:
+      - logger.log: "lebt"
+
+binary_sensor:
+  - platform: gpio
+    name: "IR Rohpegel"
+    pin:
+      number: GPIO20
+      inverted: true
+      allow_other_uses: true
+      mode:
+        input: true
+        pullup: true

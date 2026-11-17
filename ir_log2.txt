@@ -1,0 +1,6 @@
+INFO ESPHome 2026.10.1
+INFO Loaded validated config cache for fogger.yaml, skipping validation.
+INFO Starting log output from /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_14:C1:9F:E4:E8:D4-if00 with baud rate 115200
+INFO ESPHome 2026.10.1
+INFO Loaded validated config cache for fogger.yaml, skipping validation.
+INFO Starting log output from /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_14:C1:9F:E4:E8:D4-if00 with baud rate 115200
