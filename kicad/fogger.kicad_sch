@@ -5,7 +5,7 @@
 	(uuid "d69c0b5d-8349-40f0-9a85-55bd44875789")
 	(paper "A4")
 	(title_block
-		(title "Fogger – ESPHome (WLAN)")
+		(title "Fogger – ESPHome (WiFi)")
 		(date "2026-11-17")
 		(comment 1 "ESPHome: ~/Dokumente/fogger/fogger.yaml")
 	)

@@ -1,36 +1,38 @@
-# Fogger mit ESPHome
+**English** | [Deutsch](README.de.md)
 
-Eine billige Nebelmaschine (**„LED-1200 Smoke Machine“**, 1200 W, mit RGB-LEDs) per **Home Assistant** steuern. Ein **WEMOS D1 Mini** mit ESPHome hängt direkt an der Steuerung des Foggers. Funk gibt es keinen mehr.
+# Fogger with ESPHome
 
-![Platine in 3D](docs/platine_iso.png)
+Control a cheap fog machine (**"LED-1200 Smoke Machine"**, 1200 W, with RGB LEDs) from **Home Assistant**. A **WEMOS D1 Mini** running ESPHome is wired directly into the fogger's controller. There is no radio left in the loop.
 
-## Wie es dazu kam
+![PCB in 3D](docs/platine_iso.png)
 
-Zu Halloween sollte am Eingang ein Geist auftauchen. Der Bewegungsmelder löst aus, die Musik fährt hoch, das Licht wird heller, das Stroboskop geht an und dann kommt ein Nebelstoß. Der Fogger hatte nur eine billige 24-Tasten-Fernbedienung. Ich musste ihn also irgendwie in Home Assistant bekommen.
+## How it came about
 
-**Versuch 1: Infrarot.** Die Fernbedienung sieht aus wie eine typische IR-Fernbedienung für RGB-Lampen. Also habe ich einen IR-Empfänger an einen ESP gehängt, um die Codes mitzulesen. Dabei kam nichts an. Der Fogger hat gar keinen IR-Empfänger.
+For Halloween I wanted a ghost to appear at my front door. The motion sensor triggers, the music fades in, the light gets brighter, the strobe kicks in, and then a burst of fog. The fogger only came with a cheap 24-button remote, so I had to get it into Home Assistant somehow.
 
-**Versuch 2: 433 MHz.** Mit einem nanoCUL (CC1101, SIGNALduino) habe ich dann alle Tasten mitgeschnitten. Es ist einfaches OOK auf 433,92 MHz mit einem NEC-artigen Code `A7 FC <Befehl> <~Befehl>`. Für Halloween hat der ESP die Codes über den nanoCUL gefunkt, und das hat funktioniert. Zwei Probleme gab es aber:
-- Ab und zu kam ein **OFF als Nebel** an. ON und OFF unterscheiden sich nur in zwei Bit. Als Notlösung hat die Automation in der Nebelphase alle 6 s OFF gesendet.
-- Das WLAN am Eingang ist schwach. Ohne Stromsparmodus ging es dann (`power_save_mode: none`).
+**Attempt 1: infrared.** The remote looks like the typical IR remote for RGB lamps. So I hooked an IR receiver to an ESP to capture the codes. Nothing came in. The fogger has no IR receiver at all.
 
-**Lösung: Kabel statt Funk.** Nach Halloween habe ich den Fogger aufgeschraubt. Der Funkempfänger ist eine eigene kleine Platine an einem 3-poligen JST-Stecker mit der Beschriftung **GND / DO / 5V**. Auf DO liegt das demodulierte Signal: HIGH, solange die Fernbedienung sendet, sonst LOW. Ich habe das Funkmodul abgezogen, und jetzt legt der D1 Mini genau dieses Signal per Kabel auf DO. Für den Fogger sieht das aus wie eine Fernbedienung mit perfektem Empfang:
-- Alle 23 Tasten funktionieren, auch Farben, Stroboskop und Helligkeit.
-- Die Heizungssperre des Foggers bleibt aktiv.
-- Es wird nichts mehr gefunkt.
+**Attempt 2: 433 MHz.** With a nanoCUL (CC1101, SIGNALduino) I then captured every button. It is simple OOK on 433.92 MHz with an NEC-like code `A7 FC <command> <~command>`. For Halloween the ESP sent the codes through the nanoCUL, and that worked. There were two problems, though:
+- Now and then an **OFF arrived as fog ON**. ON and OFF differ in only two bits. As a workaround, the automation sent OFF every 6 s during the fog phase.
+- WiFi at the front door is weak. It worked once power saving was off (`power_save_mode: none`).
 
-Ein Stolperstein war der Pegel: Die 3,3 V des ESP erkennt die Steuerung nicht als HIGH. Ein NPN-Transistor als Pegelwandler zieht DO auf die 5 V des Foggers, und damit lief es sofort.
+**Solution: a wire instead of radio.** After Halloween I opened the fogger. The radio receiver is a separate little board on a 3-pin JST connector labelled **GND / DO / 5V**. DO carries the demodulated signal: HIGH while the remote is transmitting, LOW otherwise. I unplugged the radio module, and now the D1 Mini puts exactly this signal on DO by wire. To the fogger it looks like a remote with perfect reception:
+- All 23 buttons work, including colours, strobe and brightness.
+- The fogger's heater interlock stays in place.
+- Nothing is transmitted over the air any more.
+
+One stumbling block was the logic level: the controller does not see the ESP's 3.3 V as HIGH. An NPN transistor as a level shifter pulls DO up to the fogger's 5 V, and with that it worked right away.
 
 ## Hardware
 
-| Ref | Bauteil | Wert |
+| Ref | Part | Value |
 |---|---|---|
 | U1 | WEMOS D1 Mini (ESP8266) | |
-| Q1 | NPN, z. B. S8050 | |
-| R1 | Basiswiderstand | 1 kΩ |
-| R2 | Pull-up an DO | 10 kΩ |
-| C1 | Elko | 220–470 µF |
-| J1 | JST-XH 3-pol. zum Fogger | |
+| Q1 | NPN, e.g. S8050 | |
+| R1 | Base resistor | 1 kΩ |
+| R2 | Pull-up on DO | 10 kΩ |
+| C1 | Electrolytic capacitor | 220–470 µF |
+| J1 | JST-XH 3-pin to the fogger | |
 
 ```
 JST 5V  ──┬───────────────── D1 Mini 5V ──┬── C1 +
@@ -45,31 +47,37 @@ JST GND ──┬── E ┘                          │
           └───────────────── D1 Mini G  ───┴── C1 −
 ```
 
-- Der D1 Mini wird aus den 5 V des Foggers versorgt. Er läuft also nur, wenn der Fogger an ist. Der Regler im Fogger wird dabei warm, aber nicht heiß.
-- Der Transistor dreht das Signal um. Deshalb steht in der Firmware `inverted: true`.
-- **Nicht D3, D4 oder D8 nehmen.** Das sind Boot-Pins des ESP8266, und mit dem Transistor an der Basis startet er dort nicht mehr.
+- The D1 Mini is powered from the fogger's 5 V, so it only runs while the fogger is on. The regulator inside the fogger gets warm, but not hot.
+- The transistor inverts the signal. That is why the firmware uses `inverted: true`.
+- **Don't use D3, D4 or D8.** These are boot pins of the ESP8266, and with the transistor on the base it no longer boots from them.
 
-Den Schaltplan und die Platine (THT, auch für Lochraster) findest du in [`kicad/`](kicad/).
+You'll find the schematic and the PCB (THT, also works on perfboard) in [`kicad/`](kicad/).
 
 ## Firmware
 
-[`fogger.yaml`](fogger.yaml) ist eine ESPHome-Konfiguration. Bevor du sie baust, kopierst du `secrets.example.yaml` nach `secrets.yaml` und trägst deine Daten ein.
+[`fogger.yaml`](fogger.yaml) is an ESPHome configuration. Before building it, copy `secrets.example.yaml` to `secrets.yaml` and fill in your details.
 
-In Home Assistant bekommst du damit:
-- **Buttons** für alle Tasten der Fernbedienung, also Farben, Effekte, Helligkeit und Licht aus.
-- **Nebelstoß:** ON, nach einer einstellbaren Zeit OFF. Der Ablauf läuft im ESP, auch wenn Home Assistant zwischendurch wegfällt.
-- **Nebel ON / OFF:** ON hat eine Sicherheits-Höchstdauer, danach schickt der ESP selbst OFF.
-- **Diagnose:** WLAN-Signal, Laufzeit, Neustart-Grund.
+In Home Assistant you get:
+- **Buttons** for every button on the remote: colours, effects, brightness and light off.
+- **Fog burst:** ON, then OFF after an adjustable time. The sequence runs on the ESP, even if Home Assistant drops out in between.
+- **Fog ON / OFF:** ON has a safety maximum duration, after which the ESP sends OFF by itself.
+- **Diagnostics:** WiFi signal, uptime, reset reason.
 
-Alle Codes und das Protokoll stehen in [`codes.md`](codes.md).
+The entity names are German (e.g. „Nebelstoß“ = fog burst, „Rot“ = red), because my automations use them. Rename them in `fogger.yaml` as you like.
 
-### Weitere Dateien
-- `fogger_cul.yaml`: die Halloween-Version, ein ESP32-C6 steuert über UART einen nanoCUL, der funkt.
-- `fogger_c6.yaml`: die Draht-Version für einen ESP32-C6 statt D1 Mini.
-- `fogger_ir_alt.yaml`, `*_log*.txt`: der Versuch mit IR und die Mitschnitte vom Auslesen.
+All codes and the protocol are in [`codes.md`](codes.md).
 
-## ⚠️ Sicherheit
+### Other files
+- `fogger_cul.yaml`: the Halloween version, an ESP32-C6 drives a nanoCUL over UART, which transmits.
+- `fogger_c6.yaml`: the wired version for an ESP32-C6 instead of a D1 Mini, without the level shifter.
+- `fogger_ir_alt.yaml`, `*_log*.txt`: the IR attempt and the capture logs.
 
-In der Nebelmaschine liegen **230 V** und ein Heizblock mit mehreren hundert Grad. Öffne sie nur ausgesteckt. Bevor du etwas anschließt, prüfe, ob die Niederspannungsseite vom Netz getrennt ist. Bei mir hat ein Flyback-Netzteil mit Trafo die Seite getrennt, und zwischen GND und den Netzsteckerstiften war offen. Es gibt aber billige Geräte mit Kondensatornetzteil, und dort liegt GND auf Netzpotential.
+## ⚠️ Safety
 
-Nachbauen auf eigene Gefahr.
+Inside the fog machine there is **mains voltage (230 V)** and a heater block at several hundred degrees. Only open it unplugged. Before connecting anything, check that the low-voltage side is isolated from mains. In my unit a flyback supply with a transformer provides the isolation, and GND to the mains plug pins measured open. Some cheap devices use a capacitive dropper instead, and there GND sits at mains potential.
+
+Build at your own risk.
+
+## License
+
+[MIT](LICENSE)

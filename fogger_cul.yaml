@@ -1,5 +1,5 @@
-# Fogger LED-1200 per 433 MHz: ESP32-C6 steuert den nanoCUL (SIGNALduino) per UART.
-# Codes und Protokoll: codes.md
+# Fogger LED-1200 via 433 MHz: an ESP32-C6 drives a nanoCUL (SIGNALduino) over UART.
+# Codes and protocol: codes.md
 esphome:
   name: fogger
 
@@ -20,12 +20,12 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  power_save_mode: none   # Stromsparen aus: bei schwachem Signal sonst Aussetzer
+  power_save_mode: none   # power saving off: otherwise dropouts with weak signal
 
 debug:
   update_interval: 60s
 
-# nanoCUL: Nano D0 (RX) an GPIO19, Nano D1 (TX) ueber Teiler 10k/20k an GPIO20
+# nanoCUL: Nano D0 (RX) to GPIO19, Nano D1 (TX) via 10k/20k divider to GPIO20
 uart:
   id: cul
   tx_pin: GPIO19
@@ -48,9 +48,9 @@ script:
       - uart.write:
           id: cul
           data: !lambda 'return std::vector<uint8_t>(cmd.begin(), cmd.end());'
-      - delay: 700ms   # 6 Wiederholungen a ~65 ms + Puffer
+      - delay: 700ms   # 6 repeats of ~65 ms + margin
 
-  # Nebelstoss: ON, nach der Zeit OFF. Laeuft im ESP, auch wenn HA wegfaellt.
+  # Fog burst: ON, OFF after the set time. Runs on the ESP, even if HA goes away.
   - id: fog_burst
     mode: restart
     then:
@@ -63,7 +63,7 @@ script:
           id: send_code
           cmd: "SR;R=6;P0=400;P1=-1200;P2=1200;P3=-400;P4=-12900;D=042301230101232323232323232323010101010101010123232323232323230101;\n"
 
-  # Nebel ON mit Sicherheits-Timer: spaetestens nach fog_max_s kommt OFF
+  # Fog ON with safety timer: OFF is sent after fog_max_s at the latest
   - id: fog_on
     mode: restart
     then:
@@ -89,7 +89,7 @@ text_sensor:
 
 number:
   - platform: template
-    id: fog_max_s   # neue id, damit der alte gespeicherte Wert (60 s) nicht zurueckkommt
+    id: fog_max_s   # new id so the old stored value (60 s) does not come back
     name: "Nebel ON Höchstdauer"
     unit_of_measurement: s
     min_value: 1

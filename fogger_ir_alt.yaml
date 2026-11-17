@@ -1,4 +1,5 @@
-# Schritt 1: IR-Codes der Fogger-Fernbedienung auslesen (nur USB, noch kein WLAN)
+# Step 1: try to read IR codes from the fogger remote (USB only, no WiFi yet).
+# Turned out the fogger uses 433 MHz, not IR.
 esphome:
   name: fogger
 
@@ -19,7 +20,7 @@ remote_receiver:
       pullup: true
   dump: all
 
-# Diagnose: Herzschlag + Rohpegel am Empfaenger
+# Diagnostics: heartbeat + raw level at the receiver
 interval:
   - interval: 5s
     then:

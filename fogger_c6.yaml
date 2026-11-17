@@ -1,11 +1,12 @@
-# Fogger LED-1200: ESP32-C6 speist die Codes per Draht in die DATA-Leitung
-# des ausgesteckten 433-MHz-Empfaengers ein (JST GND / DO / 5V). Kein Funk mehr.
-# Codes und Protokoll: codes.md. Alte Funk-Variante mit nanoCUL: fogger_cul.yaml
+# Fogger LED-1200: an ESP32-C6 feeds the codes by wire into the DATA line
+# of the unplugged 433 MHz receiver (JST GND / DO / 5V). No more radio.
+# Note: without a level shifter (see fogger.yaml) 3.3 V was not enough for the fogger.
+# Codes and protocol: codes.md. Old radio version with nanoCUL: fogger_cul.yaml
 #
-# Verdrahtung (Funkmodul abgesteckt):
+# Wiring (receiver module unplugged):
 #   ESP GND    -> JST GND
 #   ESP GPIO19 -> 1 kOhm -> JST DO
-#   ESP-Versorgung vorerst separat (USB), nicht aus dem 5V-Pin des Foggers
+#   ESP powered separately (USB) at the time, not from the fogger's 5V pin
 esphome:
   name: fogger
 
@@ -26,20 +27,20 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  power_save_mode: none   # Stromsparen aus: bei schwachem Signal sonst Aussetzer
+  power_save_mode: none   # power saving off: otherwise dropouts with weak signal
 
 debug:
   update_interval: 60s
 
-# Ruhepegel LOW, HIGH = "Traeger da" wie am Ausgang des Funkempfaengers
+# Idle LOW, HIGH = "carrier present", like the output of the radio receiver
 remote_transmitter:
   id: wire
   pin: GPIO19
-  carrier_duty_percent: 100%   # kein Traeger, reines Basisband
+  carrier_duty_percent: 100%   # no carrier, plain baseband
 
 script:
-  # Sendet A7 FC <cmd> <~cmd>: Sync 400 µs H / 12.9 ms L, dann 32 Bit MSB zuerst,
-  # 0 = 400 H / 1200 L, 1 = 1200 H / 400 L. 4x wiederholt wie eine kurz gedrueckte Taste.
+  # Sends A7 FC <cmd> <~cmd>: sync 400 µs H / 12.9 ms L, then 32 bits MSB first,
+  # 0 = 400 H / 1200 L, 1 = 1200 H / 400 L. Repeated 4x like a short button press.
   - id: send_code
     parameters:
       cmd: int
@@ -59,9 +60,9 @@ script:
           call.set_send_times(4);
           call.set_send_wait(0);
           call.perform();
-      - delay: 300ms   # 4 x ~66 ms + Puffer
+      - delay: 300ms   # 4 x ~66 ms + margin
 
-  # Nebelstoss: ON, nach der Zeit OFF. Laeuft im ESP, auch wenn HA wegfaellt.
+  # Fog burst: ON, OFF after the set time. Runs on the ESP, even if HA goes away.
   - id: fog_burst
     mode: restart
     then:
@@ -70,7 +71,7 @@ script:
       - delay: !lambda 'return id(fog_seconds).state * 1000;'
       - script.execute: { id: send_code, cmd: 0x03 }
 
-  # Nebel ON mit Sicherheits-Timer: spaetestens nach fog_max_s kommt OFF
+  # Fog ON with safety timer: OFF is sent after fog_max_s at the latest
   - id: fog_on
     mode: restart
     then:
